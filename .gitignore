@@ -233,3 +233,6 @@ _Pvt_Extensions
 
 # VSCode
 .vscode
+
+# .Net Core
+**/fileshare/[Mm]igrations/

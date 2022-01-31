@@ -5,6 +5,10 @@ using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.EntityFrameworkCore;
+using FileShare.Services;
+using FileShare.Services.Interfaces;
+using System.Reflection;
 
 namespace FileShare
 {
@@ -20,9 +24,14 @@ namespace FileShare
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
+            services.AddDbContext<FileShareContext>(
+                options => options.UseNpgsql(Configuration["DbConnectionString"]));
+            services.AddAutoMapper(Assembly.GetExecutingAssembly());
             services.AddControllersWithViews();
-
+            services.AddHttpContextAccessor();
+            services.AddTransient<IRoomService, RoomService>();
+            services.AddTransient<IFileService, FileService>();
+            
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
             {
