@@ -9,6 +9,7 @@ namespace FileShare.Services.Interfaces
     {
         Task<List<FileDto>> GetFiles(Guid roomId);
         Task<FileDto> GetFileInfo(Guid id);
+        Task<BinaryData> GetFileDownload(Guid roomId, string fileName);
         Task<Guid> CreateFile(CreateFileDto dto);
         Task DeleteFile(Guid id);
     }

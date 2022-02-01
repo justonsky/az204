@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using FileShare.Services;
 using FileShare.Services.Interfaces;
 using System.Reflection;
+using Microsoft.Extensions.Azure;
 
 namespace FileShare
 {
@@ -31,6 +32,8 @@ namespace FileShare
             services.AddHttpContextAccessor();
             services.AddTransient<IRoomService, RoomService>();
             services.AddTransient<IFileService, FileService>();
+            services.AddAzureClients(
+                builder => builder.AddBlobServiceClient(Configuration["StorageConnectionString"]));
             
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration =>

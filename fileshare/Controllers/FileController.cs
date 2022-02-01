@@ -36,6 +36,19 @@ namespace FileShare.Controllers
             return await _service.GetFileInfo(id);
         }
 
+        [HttpGet("{id}/download")]
+        public async Task<IActionResult> Download(Guid id)
+        {
+            if (id == Guid.Empty)
+                throw new Exception("No file ID provided");          
+            var fileInfo = await _service.GetFileInfo(id);
+            var results = await _service.GetFileDownload(fileInfo.RoomId, fileInfo.Name);
+            return new FileContentResult(results.ToArray(), "application/octet-stream")
+            {
+                FileDownloadName = fileInfo.Name
+            };
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromForm] CreateFileDto dto)
         {

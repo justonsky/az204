@@ -6,7 +6,8 @@ using FileShare.Services.Interfaces;
 using FileShare.Models;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
-using BCrypt.Net;
+using Microsoft.Extensions.Configuration;
+using Azure.Storage.Blobs;
 
 namespace FileShare.Services
 {
@@ -14,11 +15,16 @@ namespace FileShare.Services
     {
         private readonly FileShareContext _context;
         private readonly IMapper _mapper;
+        private readonly IConfiguration _config;
+        private readonly BlobServiceClient _blobServiceClient;
 
-        public RoomService(FileShareContext context, IMapper mapper)
+        public RoomService(
+            FileShareContext context, IMapper mapper, 
+            BlobServiceClient blobServiceClient)
         {
             _context = context;
             _mapper = mapper;
+            _blobServiceClient = blobServiceClient;
         }
     
         public async Task<List<RoomDto>> GetRooms()
@@ -40,6 +46,7 @@ namespace FileShare.Services
             room.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
             _context.Rooms.Add(room);
             await _context.SaveChangesAsync();
+            await _blobServiceClient.CreateBlobContainerAsync(room.Id.ToString());
             return room.Id;
         }
 

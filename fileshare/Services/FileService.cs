@@ -2,13 +2,12 @@ using System.Threading.Tasks;
 using FileShare.Contracts;
 using System;
 using System.Collections.Generic;
-using FileShare.Models;
 using AutoMapper;
 using Microsoft.Extensions.Configuration;
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using Microsoft.AspNetCore.Http;
 using FileShare.Services.Interfaces;
+using File = FileShare.Models.File;
 
 namespace FileShare.Services
 {
@@ -24,14 +23,15 @@ namespace FileShare.Services
             FileShareContext context, 
             IHttpContextAccessor httpContextAccessor,
             IMapper mapper,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            BlobServiceClient blobServiceClient)
         {
             _context = context;
             _mapper = mapper;
             _config = configuration;
             _httpContextAccessor = httpContextAccessor;
             var azureStorageConnString = _config["StorageConnectionString"];
-            _blobServiceClient = new BlobServiceClient(azureStorageConnString);
+            _blobServiceClient = blobServiceClient;
         }
 
         public async Task<List<FileDto>> GetFiles(Guid roomId)
@@ -51,12 +51,30 @@ namespace FileShare.Services
             return _mapper.Map<File, FileDto>(file);
         }
 
+        public async Task<BinaryData> GetFileDownload(Guid roomId, string fileName)
+        {
+            if (roomId == Guid.Empty)
+                throw new Exception($"Room Guid is invalid: {roomId}");
+            var containerClient = _blobServiceClient
+                .GetBlobContainerClient(roomId.ToString());
+            var blobClient = containerClient.GetBlobClient(fileName);
+            var download = await blobClient.DownloadContentAsync();
+            return download.Value.Content;
+        }
+
         public async Task<Guid> CreateFile(CreateFileDto dto)
         {
+            if (dto == null || dto.File == null)
+                throw new Exception($"No file provided");
             var file = _mapper.Map<File>(dto);
             file.Id = Guid.NewGuid();
             _context.Files.Add(file);
             await _context.SaveChangesAsync();
+            var containerClient = _blobServiceClient
+                .GetBlobContainerClient(dto.RoomId.ToString());
+            var blobClient = containerClient.GetBlobClient(file.Name);
+            using var fileStream = dto.File.OpenReadStream();
+            await blobClient.UploadAsync(fileStream, true);
             return file.Id;
         }
 
