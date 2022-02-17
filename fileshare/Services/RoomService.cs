@@ -39,11 +39,26 @@ namespace FileShare.Services
             return _mapper.Map<RoomDto>(room);
         }
 
+        public async Task<bool> CheckRoomPassword(Guid id, string password)
+        {
+            if (id == Guid.Empty)
+                throw new Exception("ID is empty");
+            var room = await _context.Rooms.FindAsync(id);
+            if (room == null)
+                throw new Exception("Room does not exist");
+            if (!string.IsNullOrWhiteSpace(password)
+                && room.PasswordHash == BCrypt.Net.BCrypt.
+                    HashPassword(password))
+                return false;
+            return true;
+        }
+
         public async Task<Guid> CreateRoom(CreateRoomDto dto)
         {
             var room = _mapper.Map<Room>(dto);
             room.Id = Guid.NewGuid();
-            room.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            if (!string.IsNullOrWhiteSpace(dto.Password))
+                room.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
             _context.Rooms.Add(room);
             await _context.SaveChangesAsync();
             await _blobServiceClient.CreateBlobContainerAsync(room.Id.ToString());

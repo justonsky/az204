@@ -5,9 +5,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using FileShare.Services.Interfaces;
 using FileShare.Contracts;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
 
 namespace FileShare.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class RoomController : ControllerBase
@@ -36,6 +41,7 @@ namespace FileShare.Controllers
             return await _service.GetRoom(id);
         }
 
+        [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> Create(CreateRoomDto dto)
         {
@@ -43,6 +49,28 @@ namespace FileShare.Controllers
                 throw new Exception("No data provided");       
             var roomId = await _service.CreateRoom(dto);
             return CreatedAtAction(nameof(Create), new { id = roomId });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("{id}/login")]
+        public async Task<IActionResult> Login(Guid id, [FromForm] string password)
+        {
+            var room = await _service.GetRoom(id);
+            if (!await _service.CheckRoomPassword(id, password))
+                return Forbid();
+            
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, room.Id.ToString()),
+                new Claim(ClaimTypes.Role, "User")
+            };
+            var claimsIdentity = new ClaimsIdentity(claims, 
+                CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal( claimsIdentity),
+                new AuthenticationProperties { IsPersistent = true });
+            return Redirect(id.ToString());
         }
 
         [HttpDelete]

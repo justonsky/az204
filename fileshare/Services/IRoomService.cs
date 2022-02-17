@@ -10,6 +10,7 @@ namespace FileShare.Services.Interfaces
         Task<List<RoomDto>> GetRooms();
         Task<RoomDto> GetRoom(Guid id);
         Task<Guid> CreateRoom(CreateRoomDto dto);
+        Task<bool> CheckRoomPassword(Guid id, string password);
         Task DeleteRoom(Guid id);
     }
 }

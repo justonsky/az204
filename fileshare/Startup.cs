@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
+using Microsoft.AspNetCore.Http;
+using static Microsoft.AspNetCore.Http.StatusCodes;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +13,9 @@ using FileShare.Services;
 using FileShare.Services.Interfaces;
 using System.Reflection;
 using Microsoft.Extensions.Azure;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Threading.Tasks;
+using System;
 
 namespace FileShare
 {
@@ -27,6 +33,17 @@ namespace FileShare
         {
             services.AddDbContext<FileShareContext>(
                 options => options.UseNpgsql(Configuration["DbConnectionString"]));
+            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options =>
+                {
+                    options.Cookie.Name = "FileShare";
+                    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+                    options.SlidingExpiration = true;
+                    options.Events.OnRedirectToLogin = context => {
+                        context.Response.StatusCode = Status401Unauthorized;
+                        return Task.CompletedTask;
+                    };
+                }); 
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
             services.AddControllersWithViews();
             services.AddHttpContextAccessor();
@@ -59,9 +76,9 @@ namespace FileShare
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseSpaStaticFiles();
-
             app.UseRouting();
-
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(
