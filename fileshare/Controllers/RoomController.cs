@@ -27,6 +27,7 @@ namespace FileShare.Controllers
             _service = service;
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IEnumerable<RoomDto>> Get()
         {
@@ -34,11 +35,14 @@ namespace FileShare.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<RoomDto> GetById(Guid id)
+        public async Task<IActionResult> GetById(Guid id)
         {
             if (id == Guid.Empty)
                 throw new Exception("No ID provided");          
-            return await _service.GetRoom(id);
+            var result = await _service.GetRoom(id);
+            if (!User.HasClaim(ClaimTypes.Name, id.ToString()))
+                return BadRequest("User has no permissions to delete");
+            return Ok(result);
         }
 
         [AllowAnonymous]
@@ -59,16 +63,19 @@ namespace FileShare.Controllers
             if (!await _service.CheckRoomPassword(id, password))
                 return Forbid();
             
+            var existingClaims = User.Claims;
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, room.Id.ToString()),
                 new Claim(ClaimTypes.Role, "User")
             };
+            foreach(var claim in existingClaims)
+                claims.Add(claim);
             var claimsIdentity = new ClaimsIdentity(claims, 
                 CookieAuthenticationDefaults.AuthenticationScheme);
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal( claimsIdentity),
+                new ClaimsPrincipal( claimsIdentity ),
                 new AuthenticationProperties { IsPersistent = true });
             return Redirect(id.ToString());
         }
@@ -76,6 +83,8 @@ namespace FileShare.Controllers
         [HttpDelete]
         public async Task<IActionResult> Delete(Guid id)
         {     
+            if (!User.HasClaim(ClaimTypes.Name, id.ToString()))
+                return BadRequest("User has no permissions to delete");
             await _service.DeleteRoom(id);
             return NoContent();
         }

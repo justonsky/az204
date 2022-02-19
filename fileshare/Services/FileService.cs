@@ -39,7 +39,7 @@ namespace FileShare.Services
             if (roomId == Guid.Empty)
                 throw new Exception($"Guid is invalid: {roomId}");
             var room = await _context.Rooms.FindAsync(roomId);
-            var files = room.Files.ToArray();
+            var files = room.Files?.ToArray();
             return _mapper.Map<File[], List<FileDto>>(files);
         }
 
