@@ -43,7 +43,13 @@ namespace FileShare
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
             });
-
+            services.AddCors(options => 
+                options.AddDefaultPolicy(builder => {
+                    builder
+                        .AllowAnyOrigin()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                }));
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
             services.AddControllersWithViews();
             services.AddHttpContextAccessor();
@@ -78,6 +84,7 @@ namespace FileShare
             app.UseStaticFiles();
             app.UseSpaStaticFiles();
             app.UseRouting();
+            app.UseCors();
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseSession();

@@ -15,7 +15,6 @@ namespace FileShare.Services
     {
         private readonly FileShareContext _fileShareContext;
         private readonly IMapper _mapper;
-        private readonly IConfiguration _config;
         private readonly BlobServiceClient _blobServiceClient;
 
         public RoomService(
