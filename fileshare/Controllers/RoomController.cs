@@ -9,29 +9,33 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using FileShare.Extensions;
 
 namespace FileShare.Controllers
 {
-    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class RoomController : ControllerBase
     {
-        private readonly IRoomService _service;
+        private readonly IRoomService _roomService;
+        private readonly IUserService _userService;
         private readonly ILogger<RoomController> _logger;
 
         public RoomController(
-            ILogger<RoomController> logger, IRoomService service)
+            ILogger<RoomController> logger, 
+            IRoomService roomService,
+            IUserService userService)
         {
             _logger = logger;
-            _service = service;
+            _roomService = roomService;
+            _userService = userService;
         }
 
-        [AllowAnonymous]
         [HttpGet]
         public async Task<IEnumerable<RoomDto>> Get()
         {
-            return await _service.GetRooms();
+            return await _roomService.GetRooms();
         }
 
         [HttpGet("{id}")]
@@ -39,53 +43,37 @@ namespace FileShare.Controllers
         {
             if (id == Guid.Empty)
                 throw new Exception("No ID provided");          
-            var result = await _service.GetRoom(id);
-            if (!User.HasClaim(ClaimTypes.Name, id.ToString()))
-                return BadRequest("User has no permissions to delete");
+            var result = await _roomService.GetRoom(id);
+            if (!_userService.UserHasPermissionsForRoom(id))
+                return BadRequest("User has no permissions to view");
             return Ok(result);
         }
 
-        [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> Create(CreateRoomDto dto)
         {
             if (dto == null)
                 throw new Exception("No data provided");       
-            var roomId = await _service.CreateRoom(dto);
+            var roomId = await _roomService.CreateRoom(dto);
             return CreatedAtAction(nameof(Create), new { id = roomId });
         }
 
-        [AllowAnonymous]
         [HttpPost("{id}/login")]
         public async Task<IActionResult> Login(Guid id, [FromForm] string password)
         {
-            var room = await _service.GetRoom(id);
-            if (!await _service.CheckRoomPassword(id, password))
+            var room = await _roomService.GetRoom(id);
+            if (!await _roomService.CheckRoomPassword(id, password))
                 return Forbid();
-            
-            var existingClaims = User.Claims;
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, room.Id.ToString()),
-                new Claim(ClaimTypes.Role, "User")
-            };
-            foreach(var claim in existingClaims)
-                claims.Add(claim);
-            var claimsIdentity = new ClaimsIdentity(claims, 
-                CookieAuthenticationDefaults.AuthenticationScheme);
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal( claimsIdentity ),
-                new AuthenticationProperties { IsPersistent = true });
+            _userService.AddRoomToUser(room.Id);
             return Redirect(id.ToString());
         }
 
         [HttpDelete]
         public async Task<IActionResult> Delete(Guid id)
         {     
-            if (!User.HasClaim(ClaimTypes.Name, id.ToString()))
+            if (!_userService.UserHasPermissionsForRoom(id))
                 return BadRequest("User has no permissions to delete");
-            await _service.DeleteRoom(id);
+            await _roomService.DeleteRoom(id);
             return NoContent();
         }
     }

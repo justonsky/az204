@@ -12,27 +12,30 @@ using System.Security.Claims;
 
 namespace FileShare.Controllers
 {
-    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class FileController : ControllerBase
     {
-        private readonly IFileService _service;
+        private readonly IFileService _fileService;
+        private readonly IUserService _userService;
         private readonly ILogger<FileController> _logger;
 
         public FileController(
-            ILogger<FileController> logger, IFileService service)
+            ILogger<FileController> logger, 
+            IFileService fileService,
+            IUserService userService)
         {
             _logger = logger;
-            _service = service;
+            _fileService = fileService;
+            _userService = userService;
         }
 
         [HttpGet]
         public async Task<IActionResult> Get(Guid roomId)
         {
-            if (roomId == Guid.Empty || !User.HasClaim(ClaimTypes.Name, roomId.ToString()))
+            if (roomId == Guid.Empty || !_userService.UserHasPermissionsForRoom(roomId))
                 return BadRequest("User does not have appropriate permissions");
-            return Ok(await _service.GetFiles(roomId));
+            return Ok(await _fileService.GetFiles(roomId));
         }
 
         [HttpGet("{id}")]
@@ -40,10 +43,10 @@ namespace FileShare.Controllers
         {
             if (id == Guid.Empty)
                 return BadRequest("File ID is invalid");
-            var result = await _service.GetFileInfo(id);
-            if (!User.HasClaim(ClaimTypes.Name, result.RoomId.ToString()))
+            var fileInfo = await _fileService.GetFileInfo(id);
+            if (!_userService.UserHasPermissionsForRoom(fileInfo.RoomId))
                 return BadRequest("User does not have appropriate permissions");
-            return Ok(result);
+            return Ok(fileInfo);
         }
 
         [HttpGet("{id}/download")]
@@ -51,10 +54,10 @@ namespace FileShare.Controllers
         {
             if (id == Guid.Empty)
                 return BadRequest("File ID is invalid");
-            var fileInfo = await _service.GetFileInfo(id);
-            if (!User.HasClaim(ClaimTypes.Name, fileInfo.RoomId.ToString()))
+            var fileInfo = await _fileService.GetFileInfo(id);
+            if (!_userService.UserHasPermissionsForRoom(fileInfo.RoomId))
                 return BadRequest("User does not have appropriate permissions"); 
-            var results = await _service.GetFileDownload(fileInfo.RoomId, fileInfo.Name);
+            var results = await _fileService.GetFileDownload(fileInfo.RoomId, fileInfo.Name);
             return new FileContentResult(results.ToArray(), "application/octet-stream")
             {
                 FileDownloadName = fileInfo.Name
@@ -68,7 +71,7 @@ namespace FileShare.Controllers
                 throw new Exception("No data provided");    
             if (!User.HasClaim(ClaimTypes.Name, dto.RoomId.ToString()))
                 return BadRequest("User does not have appropriate permissions");   
-            var fileId = await _service.CreateFile(dto);
+            var fileId = await _fileService.CreateFile(dto);
             return CreatedAtAction(nameof(Create), new { id = fileId });
         }
 
@@ -77,10 +80,10 @@ namespace FileShare.Controllers
         {   
             if (id == Guid.Empty)
                 return BadRequest("File ID is invalid");
-            var fileInfo = await _service.GetFileInfo(id);
-            if (!User.HasClaim(ClaimTypes.Name, fileInfo.RoomId.ToString()))
+            var fileInfo = await _fileService.GetFileInfo(id);
+            if (!_userService.UserHasPermissionsForRoom(fileInfo.RoomId))
                 return BadRequest("User does not have appropriate permissions");
-            await _service.DeleteFile(id);
+            await _fileService.DeleteFile(id);
             return NoContent();
         }
     }

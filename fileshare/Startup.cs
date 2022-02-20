@@ -33,22 +33,23 @@ namespace FileShare
         {
             services.AddDbContext<FileShareContext>(
                 options => options.UseNpgsql(Configuration["DbConnectionString"]));
-            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(options =>
-                {
-                    options.Cookie.Name = "FileShare";
-                    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
-                    options.SlidingExpiration = true;
-                    options.Events.OnRedirectToLogin = context => {
-                        context.Response.StatusCode = Status401Unauthorized;
-                        return Task.CompletedTask;
-                    };
-                }); 
+
+            services.AddDistributedMemoryCache();
+            
+            services.AddSession(options =>
+            {
+                options.Cookie.Name = "fileshare_session";
+                options.IdleTimeout = TimeSpan.FromMinutes(20);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
+
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
             services.AddControllersWithViews();
             services.AddHttpContextAccessor();
             services.AddTransient<IRoomService, RoomService>();
             services.AddTransient<IFileService, FileService>();
+            services.AddTransient<IUserService, UserService>();
             services.AddAzureClients(
                 builder => builder.AddBlobServiceClient(Configuration["StorageConnectionString"]));
             
@@ -79,6 +80,7 @@ namespace FileShare
             app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseSession();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(

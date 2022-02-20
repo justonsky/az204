@@ -13,7 +13,7 @@ namespace FileShare.Services
 {
     public class RoomService : IRoomService
     {
-        private readonly FileShareContext _context;
+        private readonly FileShareContext _fileShareContext;
         private readonly IMapper _mapper;
         private readonly IConfiguration _config;
         private readonly BlobServiceClient _blobServiceClient;
@@ -22,28 +22,26 @@ namespace FileShare.Services
             FileShareContext context, IMapper mapper, 
             BlobServiceClient blobServiceClient)
         {
-            _context = context;
+            _fileShareContext = context;
             _mapper = mapper;
             _blobServiceClient = blobServiceClient;
         }
     
         public async Task<List<RoomDto>> GetRooms()
         {
-            var rooms = await _context.Rooms.ToArrayAsync();
+            var rooms = await _fileShareContext.Rooms.ToArrayAsync();
             return _mapper.Map<Room[], List<RoomDto>>(rooms);
         }
 
         public async Task<RoomDto> GetRoom(Guid id)
         {
-            var room = await _context.Rooms.FindAsync(id);
+            var room = await _fileShareContext.Rooms.FindAsync(id);
             return _mapper.Map<RoomDto>(room);
         }
 
         public async Task<bool> CheckRoomPassword(Guid id, string password)
         {
-            if (id == Guid.Empty)
-                throw new Exception("ID is empty");
-            var room = await _context.Rooms.FindAsync(id);
+            var room = await _fileShareContext.Rooms.FindAsync(id);
             if (room == null)
                 throw new Exception("Room does not exist");
             if (!string.IsNullOrWhiteSpace(password)
@@ -59,8 +57,8 @@ namespace FileShare.Services
             room.Id = Guid.NewGuid();
             if (!string.IsNullOrWhiteSpace(dto.Password))
                 room.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-            _context.Rooms.Add(room);
-            await _context.SaveChangesAsync();
+            _fileShareContext.Rooms.Add(room);
+            await _fileShareContext.SaveChangesAsync();
             await _blobServiceClient.CreateBlobContainerAsync(room.Id.ToString());
             return room.Id;
         }
@@ -69,9 +67,9 @@ namespace FileShare.Services
         {
             if (id == Guid.Empty)
                 throw new Exception($"Guid is invalid: {id}");
-            var room = await _context.Rooms.FindAsync(id);
-            _context.Remove(room);
-            await _context.SaveChangesAsync();
+            var room = await _fileShareContext.Rooms.FindAsync(id);
+            _fileShareContext.Remove(room);
+            await _fileShareContext.SaveChangesAsync();
         }
     }
 }
