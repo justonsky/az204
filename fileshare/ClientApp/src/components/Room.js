@@ -1,31 +1,31 @@
 import React, { Component } from 'react';
 
-export class FetchData extends Component {
-  static displayName = FetchData.name;
+export class Room extends Component {
+  static displayName = Room.name;
 
   constructor(props) {
     super(props);
-    this.state = { rooms: [], loading: true };
+    this.state = { files: [], loading: true };
   }
 
   componentDidMount() {
-    this.populateWeatherData();
+    this.getFilesForRoom();
   }
 
-  static renderForecastsTable(rooms) {
+  static renderFilesTable(files) {
     return (
       <table className='table table-striped' aria-labelledby="tabelLabel">
         <thead>
           <tr>
-            <th>Room</th>
-            <th>ID. (C)</th>
+            <th>ID</th>
+            <th>Name</th>
           </tr>
         </thead>
         <tbody>
-          {rooms.map(room =>
-            <tr key={room.id}>
-              <td>{room.name}</td>
-              <td>{room.id}</td>
+          {files.map(file =>
+            <tr key={file.id}>
+              <td>{file.id}</td>
+              <td>{file.name}</td>
             </tr>
           )}
         </tbody>
@@ -36,20 +36,20 @@ export class FetchData extends Component {
   render() {
     let contents = this.state.loading
       ? <p><em>Loading...</em></p>
-      : FetchData.renderForecastsTable(this.state.rooms);
+      : FetchData.renderFilesTable(this.state.files);
 
     return (
       <div>
-        <h1 id="tabelLabel" >Room list</h1>
+        <h1 id="tabelLabel" >Room {this.props.roomName}</h1>
         <p>This component demonstrates fetching data from the server.</p>
         {contents}
       </div>
     );
   }
 
-  async populateWeatherData() {
-    const response = await fetch('room');
+  async getFilesForRoom() {
+    const response = await fetch(`${this.props.roomId}/files`);
     const data = await response.json();
-    this.setState({ rooms: data, loading: false });
+    this.setState({ files: data, loading: false });
   }
 }
