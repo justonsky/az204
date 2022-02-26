@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Heading, Level, Table, Button } from 'react-bulma-components';
 import * as roomService from '../Services/roomService';
 
 export class RoomList extends Component {
@@ -15,22 +16,15 @@ export class RoomList extends Component {
 
   static renderRoomsTable(rooms) {
     return (
-      <table className='table table-striped' aria-labelledby="tabelLabel">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-          </tr>
-        </thead>
+      <Table hoverable="true" striped="true" bordered="true">
         <tbody>
           {rooms.map(room =>
             <tr key={room.id}>
-              <td>{room.id}</td>
               <td>{room.name}</td>
             </tr>
           )}
         </tbody>
-      </table>
+      </Table>
     );
   }
 
@@ -41,7 +35,18 @@ export class RoomList extends Component {
 
     return (
       <div>
-        <h1 id="tabelLabel" >Rooms</h1>
+        <Level>
+          <Level.Side align="left">
+            <Level.Item>
+              <Heading size="3">Rooms</Heading>
+            </Level.Item>
+          </Level.Side>
+          <Level.Side align="right">
+            <Level.Item>
+              <Button color="primary">+ Add Room</Button>
+            </Level.Item>
+          </Level.Side>
+        </Level>
         {contents}
       </div>
     );
