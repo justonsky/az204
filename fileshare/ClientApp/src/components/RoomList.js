@@ -1,37 +1,47 @@
-import React, { Component } from 'react';
-import { Heading, Level, Table, Button } from 'react-bulma-components';
-import * as roomService from '../Services/roomService';
+import React, { Component } from "react";
+import { Heading, Level, Table, Button } from "react-bulma-components";
+import * as roomService from "../Services/roomService";
+import { RoomLoginModal as RoomLoginModal } from "./RoomLoginModal";
 
 export class RoomList extends Component {
   static displayName = RoomList.name;
 
   constructor(props) {
     super(props);
-    this.state = { rooms: [], loading: true };
+    this.state = {
+      rooms: [],
+      loading: true,
+      showLoginModal: false,
+      loggingIntoRoomName: null
+    };
   }
 
   componentDidMount() {
     this.loadRooms();
   }
 
-  static renderRoomsTable(rooms) {
+  renderRoomsTable(rooms) {
     return (
       <Table hoverable="true" striped="true" bordered="true">
         <tbody>
-          {rooms.map(room =>
+          {rooms.map((room) => (
             <tr key={room.id}>
-              <td>{room.name}</td>
+              <td onClick={() => this.surfaceLoginModal(room.name)}>{room.name}</td>
             </tr>
-          )}
+          ))}
         </tbody>
       </Table>
     );
   }
 
   render() {
-    let contents = this.state.loading
-      ? <p><em>Loading...</em></p>
-      : RoomList.renderRoomsTable(this.state.rooms);
+    let contents = this.state.loading ? (
+      <p>
+        <em>Loading...</em>
+      </p>
+    ) : (
+      this.renderRoomsTable(this.state.rooms)
+    );
 
     return (
       <div>
@@ -43,17 +53,28 @@ export class RoomList extends Component {
           </Level.Side>
           <Level.Side align="right">
             <Level.Item>
-              <Button color="primary">+ Add Room</Button>
+              <Button
+                color="primary"
+                onClick={() => this.surfaceLoginModal("oo")}
+                disabled={this.state.loading}
+              >
+                + Add Room
+              </Button>
             </Level.Item>
           </Level.Side>
         </Level>
         {contents}
+        <RoomLoginModal show={this.state.showLoginModal} roomName={this.state.loggingIntoRoomName} />
       </div>
     );
   }
 
   async loadRooms() {
     let data = await roomService.getRooms();
-    this.setState({rooms: data, loading: false});
+    this.setState({ rooms: data, loading: false });
+  }
+
+  surfaceLoginModal(roomName) {
+    this.setState({showLoginModal: true, loggingIntoRoomName: roomName})
   }
 }
