@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { Heading, Level, Table, Button } from "react-bulma-components";
 import * as roomService from "../Services/roomService";
-import { RoomLoginModal as RoomLoginModal } from "./RoomLoginModal";
+import { RoomLoginModal } from "./RoomLoginModal";
 
 export class RoomList extends Component {
   static displayName = RoomList.name;
@@ -11,8 +11,7 @@ export class RoomList extends Component {
     this.state = {
       rooms: [],
       loading: true,
-      showLoginModal: false,
-      loggingIntoRoomName: null
+      selectedRoom: null
     };
   }
 
@@ -22,15 +21,21 @@ export class RoomList extends Component {
 
   renderRoomsTable(rooms) {
     return (
-      <Table hoverable="true" striped="true" bordered="true">
-        <tbody>
-          {rooms.map((room) => (
-            <tr key={room.id}>
-              <td onClick={() => this.surfaceLoginModal(room.name)}>{room.name}</td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+      <div>
+        <Table hoverable="true" striped="true" bordered="true">
+          <tbody>
+            {rooms.map((room) => (
+              <tr key={room.id}>
+                <td onClick={() => this.surfaceLoginModal(room)}>{room.name}</td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+        <RoomLoginModal 
+          showModal={this.state.selectedRoom != null} 
+          room={this.state.selectedRoom}
+          onClose={() => this.setState({selectedRoom: null})} />
+      </div>
     );
   }
 
@@ -55,7 +60,6 @@ export class RoomList extends Component {
             <Level.Item>
               <Button
                 color="primary"
-                onClick={() => this.surfaceLoginModal("oo")}
                 disabled={this.state.loading}
               >
                 + Add Room
@@ -64,7 +68,6 @@ export class RoomList extends Component {
           </Level.Side>
         </Level>
         {contents}
-        <RoomLoginModal show={this.state.showLoginModal} roomName={this.state.loggingIntoRoomName} />
       </div>
     );
   }
@@ -74,7 +77,7 @@ export class RoomList extends Component {
     this.setState({ rooms: data, loading: false });
   }
 
-  surfaceLoginModal(roomName) {
-    this.setState({showLoginModal: true, loggingIntoRoomName: roomName})
+  surfaceLoginModal(room) {
+    this.setState({selectedRoom: room});
   }
 }
